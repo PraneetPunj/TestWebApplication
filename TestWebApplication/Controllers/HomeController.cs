@@ -1,18 +1,31 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using TestWebApplication.Contracts;
 using TestWebApplication.Models;
 
 namespace TestWebApplication.Controllers
 {
     public class HomeController : Controller
     {
-        public IActionResult Index()
+        private readonly IPersonRepository _personRepository;
+
+        public HomeController(IPersonRepository personRepository)
         {
-            return View();
+            _personRepository = personRepository;
+        }
+        public async Task<IActionResult> Index()
+        {
+            var PersonResultList = await _personRepository.GetAll();
+            var result = PersonResultList
+                                .Where(p => p.pets != null)
+                                .GroupBy(p => p.gender)
+                                    .SelectMany(gps => gps
+                                          .SelectMany(gp => gp.pets
+                                                        .Where(c => c.type == "Cat"),(gp, c) => new ResultSetViewModel{gender = gp.gender,name = c.name }));
+
+            return View(result);
         }
 
         public IActionResult About()
